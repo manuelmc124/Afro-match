@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini IA Pro Global</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.chat-container {
+    background: rgba(255, 255, 255, 0.95);
+    width: 450px;
+    max-width: 95%;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.chat-header {
+    background: #0077ff;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+    font-size: 18px;
+}
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: rgba(245,245,245,0.9);
+}
+.chat-input {
+    display: flex;
+    border-top: 1px solid #ccc;
+}
+.chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    font-size: 16px;
+}
+.chat-input button {
+    padding: 10px 15px;
+    border: none;
+    background: #0077ff;
+    color: #fff;
+    cursor: pointer;
+}
+.message {
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+.user {
+    text-align: right;
+    background: #cce4ff;
+    margin-left: auto;
+}
+.bot {
+    text-align: left;
+    background: #e5e5e5;
+    margin-right: auto;
+}
+.warning, .creator-info {
+    font-size: 12px;
+    text-align: center;
+    color: red;
+    padding: 5px 0;
+}
+.creator-info {
+    color: #333;
+}
+</style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">Mini IA Pro Global</div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="warning">⚠️ Esta IA ainda está em desenvolvimento. Aprende com todos os usuários!</div>
+        <div class="creator-info">
+            Criador: Manuel Macário<br>
+            WhatsApp: 861463241 | 833098165 | 850267268<br>
+            PayPal: manuelmacariomanuel4@gmail.com
+        </div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Escreva sua mensagem...">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+</div>
+
+<script>
+// ==== CONFIGURAÇÃO FIREBASE ====
+const firebaseConfig = {
+    apiKey: "COLE_AQUI_SUA_API_KEY",
+    authDomain: "COLE_AQUI_SEU_AUTH_DOMAIN",
+    projectId: "COLE_AQUI_SEU_PROJECT_ID",
+    storageBucket: "COLE_AQUI_SEU_STORAGE_BUCKET",
+    messagingSenderId: "COLE_AQUI_SEU_MESSAGING_SENDER_ID",
+    appId: "COLE_AQUI_SEU_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const memoryRef = db.collection('ia_memory');
+
+let pending = null;
+
+function addMessage(sender, text) {
+    const chat = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.classList.add('message', sender);
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// Carrega respostas em tempo real
+memoryRef.onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+            // Pode atualizar a memória local
+            const data = change.doc.data();
+            // Não mostramos novamente, apenas usamos para responder
+        }
+    });
+});
+
+async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    addMessage('user', message);
+    const key = message.toLowerCase();
+
+    // Verificar se já existe resposta
+    const query = await memoryRef.where('question', '==', key).get();
+    let response = "Desculpe, ainda estou aprendendo.";
+
+    if (!query.empty) {
+        // Pega uma resposta aleatória
+        const responses = query.docs.map(doc => doc.data().answer);
+        response = responses[Math.floor(Math.random() * responses.length)];
+        pending = null;
+    } else {
+        if (pending) {
+            // Aprender a resposta para a pergunta pendente
+            await memoryRef.add({question: pending.toLowerCase(), answer: message});
+            addMessage('bot', "Aprendi a responder: '" + pending + "' → '" + message + "'");
+            pending = null;
+            response = "Obrigado! Agora posso responder melhor.";
+        } else {
+            pending = message;
+        }
+    }
+
+    addMessage('bot', response);
+    input.value = '';
+}
+
+// Mensagem de boas-vindas
+window.addEventListener('load', () => {
+    addMessage('bot', "Olá! Eu sou a IA Pro Global. Posso aprender com todos os usuários em tempo real.");
+});
+</script>
+
+</body>
+  </html>
